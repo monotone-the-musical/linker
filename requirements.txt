@@ -1,0 +1,6 @@
+linker-bookmarks
+configparser
+iterfzf
+pick
+pyperclip
+python-dateutil
