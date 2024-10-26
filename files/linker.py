@@ -144,7 +144,7 @@ def define_bookmark():
     title = url
   garbage = input("\npress [enter] to begin selecting tags:")
   try:
-    tag_in = iterfzf(listalltags(), multi=True)
+    tag_in = iterfzf(listalltags(), multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
   except:
     tag_in = []
   if tag_in is None or tag_in == []:
@@ -264,7 +264,7 @@ def list_all(searchstring='ALL',tagfilter='',getcount=False,getlistcount=False):
       return len(userdisplay)
     else:
       try:
-        response = iterfzf(userdisplay, multi=True)
+        response = iterfzf(userdisplay, multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
       except:
         response = []
   if response is None:
@@ -317,7 +317,7 @@ def multitag(fzfselected):
   if multioption == "abort":
     return False
   elif multioption == "add tags":
-    tag_in_fzf = iterfzf(listalltags(), multi=False)
+    tag_in_fzf = iterfzf(listalltags(), multi=False, cycle=True, __extra__=['--no-info','--border=rounded'])
     newtag = True
     if tag_in_fzf is None:
       tag_in = input("\n\nno existing tag was selected. enter new tags (seperate by space): ").lower()
@@ -338,7 +338,7 @@ def multitag(fzfselected):
     for key in fzfselected: 
       for tag in videodb[key]["tags"]:
         tagtochoose.append(tag)
-    tags_to_delete = iterfzf(list(set(tagtochoose)), multi=True)
+    tags_to_delete = iterfzf(list(set(tagtochoose)), multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
     os.system("clear")
     print ("\n\nwill remove the following tags from the selected records:\n")
     for tag in tags_to_delete:
@@ -373,7 +373,7 @@ def multitag(fzfselected):
 
 def listtags():
   try:
-    tag_in_fzf = iterfzf(listalltags(), multi=True)
+    tag_in_fzf = iterfzf(listalltags(), multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
   except:
     confirm = input("\nno tags exist yet. press [enter]")
     tag_in_fzf = []
@@ -407,7 +407,7 @@ def tagmod(key, users_selection, studytag=False):
     save_and_reload()
   else:
     try:
-      tag_in_fzf = iterfzf(listalltags(), multi=False)
+      tag_in_fzf = iterfzf(listalltags(), multi=False, cycle=True, __extra__=['--no-info','--border=rounded'])
     except:
       tag_in_fzf = None
     newtag = True
@@ -435,6 +435,20 @@ def edittitle(key, users_selection):
     call([EDITOR, '+set backupcopy=yes', tf.name])
     tf.seek(0)
     videodb[key]["title"] = tf.read().rstrip().decode()
+    save_and_reload()
+    users_selection[1]=[reget_title(users_selection[0])]
+
+def noteupdate(key, users_selection):
+  try:
+    orig_note = videodb[key]["note"]
+  except:
+    orig_note = ""
+  with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+    tf.write(orig_note.encode('utf-8'))
+    tf.flush()
+    call([EDITOR, '+set backupcopy=yes', tf.name])
+    tf.seek(0)
+    videodb[key]["note"] = tf.read().rstrip().decode()
     save_and_reload()
     users_selection[1]=[reget_title(users_selection[0])]
 
@@ -507,12 +521,23 @@ def menu(users_selection):
       thetags = users_selection[1][0][1]
       url = users_selection[1][0][2]
       key = users_selection[0]
+      try:
+        note = videodb[key]["note"]
+        if note != "":
+          hasnote = True
+        else:
+          hasnote = False
+      except:
+        note = ""
+        hasnote = False
       dateobject = datetime.datetime.strptime(videodb[key]["date"], "%Y-%m-%d %H:%M:%S.%f")
       datestring=dateobject.strftime("%d-%m-%y %H:%M")
       print (bcolors.OKGREEN+"\n%s\n" % title +bcolors.ENDC)
       print (bcolors.FAIL+"%s\n" % (datestring) +bcolors.ENDC)
       print (bcolors.GRAY+"(t)ags: %s\n" % (thetags) +bcolors.ENDC)
       print (bcolors.OKBLUE+"\n%s\n" % (url) +bcolors.ENDC)
+      if hasnote:
+        print (bcolors.FAIL+"\n%s\n" % (note) +bcolors.ENDC)
       print
       linecount=0
       garbage = True
@@ -521,11 +546,13 @@ def menu(users_selection):
         pagestring="-p%s-" % pageno
       else:
         pagestring=""
-      print (bcolors.GRAY+"\n(r)emove-tag  (s)imilar-tags  (e)dit-title  (d)elete  (c)lip  (b)ack [/]  [q]uit\t%s\n" % pagestring +bcolors.ENDC)
+      print (bcolors.GRAY+"\n(r)emove-tag  (s)imilar-tags  (e)dit-title  (d)elete  (c)lip  (n)ote  stay(o)pen  (b)ack [/]  [q]uit\t%s\n" % pagestring +bcolors.ENDC)
       appendprompt=False
       if not appendprompt:
         userin = input(": ").lower()
-      if userin == "o" or userin == "":
+      if userin == "o":
+        runfile(key, True)
+      if userin == "":
         runfile(key)
       if userin == "c":
         copyurl(key, False)
@@ -541,7 +568,7 @@ def menu(users_selection):
       elif userin == "e":
         edittitle(key, users_selection)
       elif userin == "n":
-        editnotes(key, users_selection)
+        noteupdate(key, users_selection)
       elif userin == "a":
         editapplication(key, users_selection)
       elif userin == "s":
@@ -584,7 +611,7 @@ def search():
   confirm = input("\n filter by tags? (y|N): ")
   if confirm == "y":
     try:
-      tagarray = iterfzf(listalltags(), multi=True)
+      tagarray = iterfzf(listalltags(), multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
     except:
       tagarray = []
     try:
@@ -601,7 +628,7 @@ def search():
 
 def similartags(thekey):
   alltags=videodb[thekey]["tags"]
-  tagarray = iterfzf(alltags, multi=True)
+  tagarray = iterfzf(alltags, multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
   try:
     if tagarray[0] != "":
       selection = list_all(searchstring, tagarray)
@@ -621,7 +648,7 @@ def saved_search(searchfunction): #add, delete, rename
     userin = input("\n\n search string: ").lower()
     confirm = input("\n include search by tags? (y|N): ")
     if confirm == "y":
-      tagarray = iterfzf(listalltags(), multi=True)
+      tagarray = iterfzf(listalltags(), multi=True, cycle=True, __extra__=['--no-info','--border=rounded'])
       try:
         tag_in = tagarray[0] 
       except IndexError:
@@ -672,9 +699,9 @@ def wrapper():
   except:
     spacer=False
   if spacer:
-    menuselection = iterfzf(menuoptions+spacer+sswithcountformatted+spacer+quit, multi=False)
+    menuselection = iterfzf(menuoptions+spacer+sswithcountformatted+spacer+quit, multi=False, cycle=True, __extra__=['--no-info','--border=rounded'])
   else:
-    menuselection = iterfzf(menuoptions+quit, multi=False)
+    menuselection = iterfzf(menuoptions+quit, multi=False, cycle=True, __extra__=['--no-info','--border=rounded'])
   try:
     found=False
     for somerec in sswithcount:
@@ -697,7 +724,7 @@ def wrapper_admin():
                 "saved search - rename",
                 "/"
               ]
-  menuselection = iterfzf(menuoptions, multi=False)
+  menuselection = iterfzf(menuoptions, multi=False, cycle=True, __extra__=['--no-info','--border=rounded'])
   if menuselection == "saved search - add":
     saved_search("add")
   elif menuselection == "saved search - delete":

@@ -50,6 +50,9 @@ Thumbs.db
 
 # python environment
 linker/
+files/venv
+files/venv/*
+files/test.sh
 environments/
 dist/
 src/linker.egg-info/

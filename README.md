@@ -7,8 +7,6 @@ pipx install linker-bookmarks
 pipx ensurepath
 ```
 
-Ensure you use ```pipx``` to install globally without polluting your system-wide packages.
-
 ### Description
 
 *linker* is a tag-based CLI bookmark manager. Quickly and easily save and launch URLs. Linker is designed to be lightweight and small in size, allowing you to easily sync your bookmarks between devices, (eg github, bitbucket, onedrive, etc).
